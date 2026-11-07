@@ -1,12 +1,12 @@
-# Autonomous Low-Loss Metaferrite Synthesis via Deep Reinforcement Learning (PPO)
+# Autonomous Low-Loss Metaferrite & FSS Synthesis via Deep Reinforcement Learning (PPO)
 
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
 [![PyTorch 2.2](https://img.shields.io/badge/PyTorch-2.2-ee4c2c.svg)](https://pytorch.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An autonomous physics-guided inverse-design framework for synthesizing low-loss metaferrite metamaterials at GPS L1 band (**1.575 GHz**) using **Proximal Policy Optimization (PPO)**. 
+An autonomous physics-guided inverse-design framework for synthesizing low-loss metaferrite metamaterials at GPS L1 band (**1.575 GHz**) and broadband **Square-Loop Frequency Selective Surface (FSS)** absorbers across **5.0–9.5 GHz** using **Proximal Policy Optimization (PPO)**.
 
-This repository replaces classical heuristic search methods (e.g., Genetic Algorithms) with an **Actor-Critic deep reinforcement learning agent** coupled with continuous transmission-line (TL) electromagnetic physics to synthesize both positive ($\mu_r' > 0$) and negative ($\mu_r' < 0$) artificial magnetic permeability with ultra-low magnetic loss ($\mu_r'' \ll 1$).
+This repository replaces classical heuristic search methods (e.g., Genetic Algorithms) with **Actor-Critic deep reinforcement learning agents** coupled with continuous transmission-line (TL) electromagnetic physics to synthesize both positive ($\mu_r' > 0$) and negative ($\mu_r' < 0$) artificial magnetic permeability with ultra-low magnetic loss ($\mu_r'' \ll 1$), along with amortized zero-shot inverse synthesis networks.
 
 ---
 
@@ -16,6 +16,7 @@ This repository replaces classical heuristic search methods (e.g., Genetic Algor
 - [Physics & Theoretical Model](#-physics--theoretical-model)
 - [PPO Reinforcement Learning Architecture](#-ppo-reinforcement-learning-architecture)
 - [Synthesis Results (Benchmark Comparison)](#-synthesis-results-benchmark-comparison)
+- [Square-Loop FSS & Amortized Zero-Shot Policy](#-square-loop-fss--amortized-zero-shot-policy)
 - [Visualizations & Dashboards](#-visualizations--dashboards)
 - [Getting Started](#-getting-started)
 - [Repository Structure](#-repository-structure)
@@ -33,16 +34,17 @@ Traditional synthesis relies on brute-force Genetic Algorithms (GA) that require
 
 ## ✨ Key Features
 
-- **Continuous 1D Transmission Line Metamaterial Physics**: Rigorous analytical calculation of surface impedance ($Z_s$), substrate impedance ($Z_{sub}$), and effective relative permeability ($\mu_{eff}$).
+- **Continuous 1D Transmission Line Metamaterial Physics**: Analytical calculation of surface impedance ($Z_s$), substrate impedance ($Z_{sub}$), and effective relative permeability ($\mu_{eff}$).
 - **8-fold $C_{4v}$ Symmetry Encoding**: 36-bit irreducible fundamental triangle mirrored to generate a polarization-independent, four-fold symmetric $16 \times 16$ unit cell and $64 \times 64$ tiled periodic array.
 - **Hybrid Search Space**: Jointly optimizes **36 discrete binary metallic patch bits** and **5 continuous physical parameters**:
-  - Cell size $D \in [1.0, 2.5]\text{ cm}$
-  - Real permittivity $\varepsilon_r' \in [10.0, 13.0]$
-  - Imaginary permittivity $\varepsilon_r'' \in [0.0, 0.05]$
+  - Cell size $D \in [1.0, 5.0]\text{ cm}$
+  - Real permittivity $\varepsilon_r' \in [10.0, 15.0]$
+  - Imaginary permittivity $\varepsilon_r'' \in [0.0001, 0.1]$
   - Substrate thickness $h \in [1.0, 15.0]\text{ mm}$
-  - FSS sheet resistance $R_s \in [5.0, 200.0]\text{ m}\Omega/\Box$
-- **Actor-Critic Policy with Coordinate Refinement**: Two-headed MLP neural network trained with clipped surrogate loss and periodic coordinate fine-scale local exploitation.
-- **Multi-Target Coverage**: Successfully synthesizes all target permeability values across both positive and negative regimes: $\mu_r' \in \{+5.0, +10.0, +25.0, -5.0, -10.0, -25.0\}$.
+  - FSS sheet resistance $R_s \in [1.0, 250.0]\text{ m}\Omega/\Box$
+- **Continuous Actor-Critic Square-Loop FSS**: Direct continuous synthesis of square-loop FSS absorber geometries ($p$, $d$, $s$, $h$, $\varepsilon_r$, $R_s$).
+- **Amortized Target-Conditioned Policy**: Zero-shot neural network mapping any target resonance frequency $f_{\text{target}} \in [5.0, 9.5]\text{ GHz}$ to constraint-satisfying physical geometry in $<1\text{ ms}$.
+- **Multi-Target Coverage**: Synthesizes all target permeability values across positive and negative regimes: $\mu_r' \in \{+5.0, +10.0, +25.0, -5.0, -10.0, -25.0\}$.
 
 ---
 
@@ -63,7 +65,7 @@ $$C_{\text{fss}} = 2.5 \cdot D \cdot \varepsilon_0 (\varepsilon_r' + 1.0) \cdot 
 
 $$Z_{\text{fss}} = R_{\text{fss}} - j \frac{1}{\omega C_{\text{fss}}}$$
 
-The total surface impedance $Z_s$ and effective relative permeability $\mu_{\text{eff}}$ are then evaluated as:
+The total surface impedance $Z_s$ and effective relative permeability $\mu_{\text{eff}}$ are evaluated as:
 
 $$Z_s = \frac{Z_{\text{fss}} \cdot Z_{\text{sub}}}{Z_{\text{fss}} + Z_{\text{sub}}}$$
 
@@ -90,7 +92,7 @@ The synthesis is structured as an MDP inside `MetaferritePPOEnv`:
 
 ## 📊 Synthesis Results (Benchmark Comparison)
 
-Below is the summary of PPO-synthesized low-loss metaferrite topologies across all 6 target permeabilities at **1.575 GHz**:
+Summary of PPO-synthesized low-loss metaferrite topologies across all 6 target permeabilities at **1.575 GHz**:
 
 | Target $\mu_r'$ | Achieved $\mu_r''$ (Loss) | Cell Size $D$ (cm) | $\varepsilon_r'$ | $\varepsilon_r''$ | Thickness $h$ (mm) | FSS $R_s$ ($\text{m}\Omega$) |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -101,9 +103,18 @@ Below is the summary of PPO-synthesized low-loss metaferrite topologies across a
 | **$-10.0$** | $0.0022$ | $2.094$ | $12.58$ | $0.0318$ | $10.86$ | $22$  |
 | **$-25.0$** | $0.0074$ | $1.073$ | $10.58$ | $0.0061$ | $13.15$ | $79$  |
 
-### Key Highlights:
+### Highlights:
 - **Ultra-low Loss**: In both positive and negative regimes, $\mu_r''$ consistently reaches $< 0.015$ (lowest at $\mu_r'' = 0.0015$ for $+25$, and $0.0022$ for $-10$).
 - **Sample Efficiency**: PPO converges in an average of **11,800 - 14,200 evaluations**, compared to 40,000 evaluations budgeted in classical GA literature.
+
+---
+
+## 🔲 Square-Loop FSS & Amortized Zero-Shot Policy
+
+In [low_loss_2.ipynb](low_loss_2.ipynb), the framework is extended to continuous Square-Loop Frequency Selective Surface (FSS) absorbers:
+1. **Continuous Action PPO**: Simultaneously synthesizes period ($p$), loop dimension ($d$), trace width ($s$), gap ($g = p - d$), substrate thickness ($h$), dielectric constant ($\varepsilon_r$), and sheet resistance ($R_s$).
+2. **Amortized Target-Conditioned Policy (`AmortizedFSSPolicyNet`)**: A neural network trained to act as an instantaneous generator for any target frequency $f_{\text{target}} \in [5.0, 9.5]\text{ GHz}$. The network provides zero-shot parameters with $<0.05\%$ frequency tracking error in $<1\text{ ms}$, eliminating per-target retraining.
+3. **Ansys HFSS 3D Modeler Export**: Generates exact parametric geometry tables for automated full-wave simulation export.
 
 ---
 
@@ -120,6 +131,11 @@ Below is the summary of PPO-synthesized low-loss metaferrite topologies across a
 | $\mu_r' = +10.0$ Design | $\mu_r' = -10.0$ Design |
 |:---:|:---:|
 | ![Unit Cell +10](ppo_unit_cell_mu_10_0.png) | ![Unit Cell -10](ppo_unit_cell_mu_-10_0.png) |
+
+### 3. Square-Loop FSS Synthesis & Amortized Inference Proof
+| Square-Loop FSS Synthesis Dashboard | Zero-Shot Amortized Policy Proof |
+|:---:|:---:|
+| ![Square Loop FSS](square_loop_fss_ppo_synthesis.png) | ![Amortized Inference](ppo_amortized_inference_proof.png) |
 
 ---
 
@@ -139,8 +155,8 @@ cd UG_PROJECT_2
 pip install numpy matplotlib torch torchvision torchaudio
 ```
 
-### Running the Synthesis
-Open and run all cells in [low_loss.ipynb](low_loss.ipynb) using Jupyter Lab or VS Code:
+### Running the Notebooks
+Open and run all cells in [low_loss.ipynb](low_loss.ipynb) or [low_loss_2.ipynb](low_loss_2.ipynb):
 ```bash
 jupyter lab low_loss.ipynb
 ```
@@ -153,10 +169,13 @@ jupyter lab low_loss.ipynb
 UG_PROJECT_2/
 ├── README.md                              # Project documentation & benchmark analysis
 ├── LICENSE                                # MIT License
-├── low_loss.ipynb                         # Full PPO synthesis pipeline & electromagnetic simulation
+├── low_loss.ipynb                         # Discrete/hybrid PPO metaferrite synthesis pipeline
+├── low_loss_2.ipynb                       # Continuous square-loop FSS & amortized zero-shot policy
 ├── ppo_accuracy_validation_dashboard.png  # 4-panel quantitative validation figure
 ├── ppo_unit_cell_mu_10_0.png              # Unit cell geometry for mu_r' = +10
-└── ppo_unit_cell_mu_-10_0.png             # Unit cell geometry for mu_r' = -10
+├── ppo_unit_cell_mu_-10_0.png             # Unit cell geometry for mu_r' = -10
+├── square_loop_fss_ppo_synthesis.png      # 4-panel square-loop FSS synthesis analysis
+└── ppo_amortized_inference_proof.png      # Zero-shot amortized policy generalizability proof
 ```
 
 ---
